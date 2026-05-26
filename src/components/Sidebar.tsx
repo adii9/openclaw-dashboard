@@ -6,10 +6,11 @@ import {
   Bot,
   History,
   Sparkles,
+  Wand2,
 } from "lucide-react";
 import ThemeButton from "./ThemeButton";
 
-type NavSection = "dashboard" | "agents" | "cron" | "chat";
+type NavSection = "dashboard" | "agents" | "cron" | "chat" | "skills";
 
 interface SidebarProps {
   activeSection: NavSection;
@@ -24,6 +25,7 @@ const navItems = [
   { id: "agents" as NavSection, label: "Agents", icon: Bot },
   { id: "cron" as NavSection, label: "Schedules", icon: History },
   { id: "chat" as NavSection, label: "Chat", icon: Sparkles },
+  { id: "skills" as NavSection, label: "Skills", icon: Wand2 },
 ];
 
 export default function Sidebar({

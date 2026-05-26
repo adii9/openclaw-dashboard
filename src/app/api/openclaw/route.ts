@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { execSync } from 'child_process';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 const OPENCLAW_CMD = '/opt/homebrew/bin/openclaw';
 const SESSIONS_DIR = '/Users/adiimathur/.openclaw/agents';
+const WORKSPACE_DIR = '/Users/adiimathur/.openclaw/workspace/skills';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -54,6 +55,62 @@ export async function GET(request: Request) {
       }
 
       return NextResponse.json({ messages });
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  // Handle skills list
+  if (method === 'skills.list') {
+    try {
+      const skillDirs = readdirSync(WORKSPACE_DIR).filter(f => f !== '.DS_Store');
+      const skills = skillDirs.map(dir => {
+        const skillPath = join(WORKSPACE_DIR, dir, 'SKILL.md');
+        let title = dir.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        let description = '';
+        let triggerPhrases: string[] = [];
+
+        if (existsSync(skillPath)) {
+          const content = readFileSync(skillPath, 'utf8');
+          const lines = content.split('\n');
+
+          // Parse frontmatter
+          let inFrontmatter = false;
+          for (const line of lines) {
+            if (line.trim() === '---') {
+              if (!inFrontmatter) {
+                inFrontmatter = true;
+              } else {
+                break;
+              }
+            } else if (inFrontmatter) {
+              if (line.startsWith('name:')) {
+                title = line.replace('name:', '').trim();
+              } else if (line.startsWith('description:')) {
+                description = line.replace('description:', '').trim();
+              } else if (line.startsWith('trigger phrases:') || line.startsWith('trigger phrases')) {
+                const triggers = line.replace(/trigger phrases:?\s*/i, '').split(',').map((t: string) => t.trim().replace(/"/g, ''));
+                triggerPhrases = triggers;
+              }
+            }
+          }
+
+          // If no frontmatter description, get first paragraph
+          if (!description) {
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('```')) {
+                description = trimmed.slice(0, 100);
+                break;
+              }
+            }
+          }
+        }
+
+        return { name: dir, title, description, triggerPhrases };
+      });
+
+      return NextResponse.json({ skills });
     } catch (e) {
       return NextResponse.json({ error: (e as Error).message }, { status: 500 });
     }

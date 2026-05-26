@@ -7,9 +7,10 @@ import DashboardHome from "@/components/DashboardHome";
 import AgentsPanel from "@/components/AgentsPanel";
 import CronPanel from "@/components/CronPanel";
 import ChatPanel from "@/components/ChatPanel";
+import SkillsPanel from "@/components/SkillsPanel";
 import { getOpenClawGateway, Agent, CronJob } from "@/lib/openclaw";
 
-type NavSection = "dashboard" | "agents" | "cron" | "chat";
+type NavSection = "dashboard" | "agents" | "cron" | "chat" | "skills";
 
 // Local simplified types for UI
 interface UIAgent {
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState<NavSection>("dashboard");
   const [agents, setAgents] = useState<UIAgent[]>([]);
   const [cronJobs, setCronJobs] = useState<UICronJob[]>([]);
+  const [skills, setSkills] = useState<{name: string; title: string; description: string; triggerPhrases?: string[]}[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected">("disconnected");
   const [lastSync, setLastSync] = useState<string>("Never");
   const [loading, setLoading] = useState(true);
@@ -87,6 +89,16 @@ export default function DashboardPage() {
   // Initial fetch and polling
   useEffect(() => {
     fetchData();
+
+    // Fetch skills
+    fetch('/api/openclaw?method=skills.list')
+      .then(res => res.json())
+      .then(data => {
+        if (data.skills && Array.isArray(data.skills)) {
+          setSkills(data.skills);
+        }
+      })
+      .catch(console.error);
 
     // Poll every 30 seconds
     const interval = setInterval(fetchData, 30000);
@@ -152,6 +164,8 @@ export default function DashboardPage() {
         return <CronPanel cronJobs={cronJobs} onAction={handleCronAction} />;
       case "chat":
         return <ChatPanel />;
+      case "skills":
+        return <SkillsPanel skills={skills} />;
       default:
         return <DashboardHome agents={agents} cronJobs={cronJobs} />;
     }
