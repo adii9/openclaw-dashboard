@@ -116,6 +116,38 @@ export async function GET(request: Request) {
     }
   }
 
+  // Handle mmx quota
+  if (method === 'mmx.quota') {
+    try {
+      const stdout = execSync('/opt/homebrew/bin/mmx quota show --output json 2>&1', {
+        encoding: 'utf8',
+        timeout: 15000,
+      });
+
+      const jsonStart = stdout.indexOf('{');
+      const jsonStr = jsonStart >= 0 ? stdout.substring(jsonStart) : stdout;
+
+      let data;
+      try {
+        data = JSON.parse(jsonStr);
+      } catch {
+        data = { raw: stdout, parsed: false };
+      }
+
+      return NextResponse.json(data);
+    } catch (error) {
+      const err = error as Error & { stdout?: string; stderr?: string };
+      return NextResponse.json(
+        {
+          error: err.message,
+          stdout: err.stdout?.substring(0, 500),
+          stderr: err.stderr?.substring(0, 500)
+        },
+        { status: 500 }
+      );
+    }
+  }
+
   try {
     const stdout = execSync(`${OPENCLAW_CMD} gateway call ${method} 2>&1`, {
       encoding: 'utf8',
