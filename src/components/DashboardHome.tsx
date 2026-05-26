@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bot, Clock, ArrowRight, Zap, Image, Music, Video, FileText, Mic } from "lucide-react";
+import { Bot, Clock, ArrowRight, Zap, Image, Music, Video, FileText, Mic, Code } from "lucide-react";
 import AgentCard from "./AgentCard";
 import { useState, useEffect } from "react";
 
@@ -27,40 +27,45 @@ interface DashboardHomeProps {
   cronJobs: CronJob[];
 }
 
-interface CategoryQuota {
-  category: string;
-  display_name: string;
+interface ModelQuota {
+  model_name: string;
   current_interval_total_count: number;
   current_interval_usage_count: number;
   current_weekly_total_count: number;
   current_weekly_usage_count: number;
+  weekly_remains_time: number;
 }
 
 interface QuotaData {
-  model_remains: {
-    model_name: string;
-    current_interval_total_count: number;
-    current_interval_usage_count: number;
-    current_weekly_total_count: number;
-    current_weekly_usage_count: number;
-  }[];
-  category_remains: CategoryQuota[];
+  model_remains: ModelQuota[];
 }
 
-const categoryIcons: Record<string, React.ElementType> = {
-  text_generation: FileText,
-  speech_generation: Mic,
-  image_generation: Image,
-  music_generation: Music,
-  video_generation: Video,
+const modelIcons: Record<string, React.ElementType> = {
+  "MiniMax-M*": FileText,
+  "speech-hd": Mic,
+  "MiniMax-Hailuo-2.3-Fast-6s-768p": Video,
+  "MiniMax-Hailuo-2.3-6s-768p": Video,
+  "music-2.5": Music,
+  "music-2.6": Music,
+  "music-cover": Music,
+  "lyrics_generation": Music,
+  "image-01": Image,
+  "coding-plan-vlm": Code,
+  "coding-plan-search": Code,
 };
 
-const categoryColors: Record<string, string> = {
-  text_generation: "from-[#ff6b35] to-[#ff8c42]",
-  speech_generation: "from-[#00f0ff] to-[#0891b2]",
-  image_generation: "from-[#a855f7] to-[#9333ea]",
-  music_generation: "from-[#10b981] to-[#059669]",
-  video_generation: "from-[#f59e0b] to-[#d97706]",
+const modelColors: Record<string, string> = {
+  "MiniMax-M*": "from-[#ff6b35] to-[#ff8c42]",
+  "speech-hd": "from-[#00f0ff] to-[#0891b2]",
+  "MiniMax-Hailuo-2.3-Fast-6s-768p": "from-[#a855f7] to-[#9333ea]",
+  "MiniMax-Hailuo-2.3-6s-768p": "from-[#a855f7] to-[#9333ea]",
+  "music-2.5": "from-[#10b981] to-[#059669]",
+  "music-2.6": "from-[#10b981] to-[#059669]",
+  "music-cover": "from-[#10b981] to-[#059669]",
+  "lyrics_generation": "from-[#10b981] to-[#059669]",
+  "image-01": "from-[#a855f7] to-[#9333ea]",
+  "coding-plan-vlm": "from-[#00f0ff] to-[#0891b2]",
+  "coding-plan-search": "from-[#00f0ff] to-[#0891b2]",
 };
 
 export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) {
@@ -86,7 +91,18 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
   const dailyUsed = mainModel?.current_interval_usage_count || 0;
   const dailyPercent = dailyTotal > 0 ? Math.round((dailyUsed / dailyTotal) * 100) : 0;
 
-  const categories = quotaData?.category_remains?.filter(c => c.current_weekly_total_count > 0) || [];
+  const formatTimeRemaining = (ms: number) => {
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.floor((ms % 3600000) / 60000);
+    return `${hours}h ${minutes}m`;
+  };
+
+  const formatNumber = (n: number) => n.toLocaleString();
+
+  // Filter models that have actual quotas (either interval or weekly > 0)
+  const activeModels = quotaData?.model_remains?.filter(m =>
+    m.current_interval_total_count > 0 || m.current_weekly_total_count > 0
+  ) || [];
 
   return (
     <div className="max-w-6xl">
@@ -204,57 +220,82 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
         )}
       </motion.div>
 
-      {/* Quota Details */}
-      {categories.length > 0 && (
+      {/* Quota Details - Model Breakdown */}
+      {activeModels.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-semibold">API Quota Details</h2>
+            <h2 className="font-display text-lg font-semibold">API Quota</h2>
+            <span className="text-xs text-[--text-dim]">Resets in {formatTimeRemaining(mainModel?.weekly_remains_time || 0)}</span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {categories.map((cat, index) => {
-              const Icon = categoryIcons[cat.category] || Zap;
-              const colorClass = categoryColors[cat.category] || "from-[--accent-cyan] to-[--accent-violet]";
-              const used = cat.current_weekly_usage_count;
-              const total = cat.current_weekly_total_count;
-              const percent = total > 0 ? Math.round((used / total) * 100) : 0;
-              const remaining = total - used;
+          <div className="space-y-2">
+            {activeModels.map((model, index) => {
+              const Icon = modelIcons[model.model_name] || Zap;
+              const colorClass = modelColors[model.model_name] || "from-[--accent-cyan] to-[--accent-violet]";
+
+              const dailyUsed = model.current_interval_usage_count;
+              const dailyTotal = model.current_interval_total_count;
+              const dailyPct = dailyTotal > 0 ? Math.round((dailyUsed / dailyTotal) * 100) : 0;
+
+              const weeklyUsed = model.current_weekly_usage_count;
+              const weeklyTotal = model.current_weekly_total_count;
 
               return (
                 <motion.div
-                  key={cat.category}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 + index * 0.05 }}
+                  key={model.model_name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.03 }}
                   className="bg-[--bg-panel] border border-[--border-subtle] rounded-xl p-4 hover:border-[--border-glow] transition-all"
                 >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center`}>
-                      <Icon size={14} className="text-white" />
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center flex-shrink-0`}>
+                      <Icon size={18} className="text-white" />
                     </div>
-                    <span className="text-xs text-[--text-muted] font-medium truncate">{cat.display_name}</span>
-                  </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-end justify-between">
-                      <span className="text-lg font-bold">{remaining.toLocaleString()}</span>
-                      <span className="text-[10px] text-[--text-dim]">remaining</span>
-                    </div>
-                    <div className="h-1.5 bg-[--bg-elevated] rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percent}%` }}
-                        transition={{ duration: 0.6, delay: 0.6 + index * 0.05 }}
-                        className={`h-full bg-gradient-to-r ${colorClass}`}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-[--text-dim]">
-                      <span>{used} used</span>
-                      <span>{percent}%</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-medium text-sm truncate">{model.model_name}</h3>
+                        <span className="text-xs text-[--text-dim] whitespace-nowrap ml-4">
+                          {dailyUsed.toLocaleString()} / {dailyTotal.toLocaleString()} — {dailyPct}%
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-[--text-dim]">Daily</span>
+                            <span className="text-[--text-muted]">{dailyPct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-[--bg-elevated] rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${dailyPct}%` }}
+                              transition={{ duration: 0.5, delay: 0.6 + index * 0.03 }}
+                              className={`h-full bg-gradient-to-r ${colorClass}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="w-32">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-[--text-dim]">Weekly</span>
+                            <span className="text-[--text-muted]">{weeklyUsed.toLocaleString()} / {weeklyTotal.toLocaleString()}</span>
+                          </div>
+                          <div className="h-1.5 bg-[--bg-elevated] rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${weeklyTotal > 0 ? (weeklyUsed / weeklyTotal) * 100 : 0}%` }}
+                              transition={{ duration: 0.5, delay: 0.6 + index * 0.03 }}
+                              className={`h-full bg-gradient-to-r ${colorClass} opacity-60`}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
