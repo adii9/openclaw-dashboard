@@ -34,14 +34,20 @@ export default function TodoPanel() {
   }, [todos]);
 
   const addTodo = () => {
-    if (!input.trim()) return;
+    const text = input.trim();
+    if (!text) return;
+
     const newTodo: Todo = {
       id: Date.now().toString(),
-      text: input.trim(),
+      text: text,
       completed: false,
       createdAt: Date.now(),
     };
-    setTodos(prev => [newTodo, ...prev]);
+
+    setTodos(currentTodos => {
+      const updated = [newTodo, ...currentTodos];
+      return updated;
+    });
     setInput("");
   };
 
