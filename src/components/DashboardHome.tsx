@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bot, Clock, ArrowRight, Zap, Gauge } from "lucide-react";
+import { Bot, Clock, ArrowRight, Zap, Image, Music, Video, FileText, Mic } from "lucide-react";
 import AgentCard from "./AgentCard";
 import { useState, useEffect } from "react";
 
@@ -27,6 +27,15 @@ interface DashboardHomeProps {
   cronJobs: CronJob[];
 }
 
+interface CategoryQuota {
+  category: string;
+  display_name: string;
+  current_interval_total_count: number;
+  current_interval_usage_count: number;
+  current_weekly_total_count: number;
+  current_weekly_usage_count: number;
+}
+
 interface QuotaData {
   model_remains: {
     model_name: string;
@@ -35,7 +44,24 @@ interface QuotaData {
     current_weekly_total_count: number;
     current_weekly_usage_count: number;
   }[];
+  category_remains: CategoryQuota[];
 }
+
+const categoryIcons: Record<string, React.ElementType> = {
+  text_generation: FileText,
+  speech_generation: Mic,
+  image_generation: Image,
+  music_generation: Music,
+  video_generation: Video,
+};
+
+const categoryColors: Record<string, string> = {
+  text_generation: "from-[#ff6b35] to-[#ff8c42]",
+  speech_generation: "from-[#00f0ff] to-[#0891b2]",
+  image_generation: "from-[#a855f7] to-[#9333ea]",
+  music_generation: "from-[#10b981] to-[#059669]",
+  video_generation: "from-[#f59e0b] to-[#d97706]",
+};
 
 export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
@@ -60,8 +86,10 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
   const dailyUsed = mainModel?.current_interval_usage_count || 0;
   const dailyPercent = dailyTotal > 0 ? Math.round((dailyUsed / dailyTotal) * 100) : 0;
 
+  const categories = quotaData?.category_remains?.filter(c => c.current_weekly_total_count > 0) || [];
+
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-6xl">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -153,6 +181,7 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
+        className="mb-8"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg font-semibold">Your Agents</h2>
@@ -174,6 +203,66 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
           </div>
         )}
       </motion.div>
+
+      {/* Quota Details */}
+      {categories.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-semibold">API Quota Details</h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {categories.map((cat, index) => {
+              const Icon = categoryIcons[cat.category] || Zap;
+              const colorClass = categoryColors[cat.category] || "from-[--accent-cyan] to-[--accent-violet]";
+              const used = cat.current_weekly_usage_count;
+              const total = cat.current_weekly_total_count;
+              const percent = total > 0 ? Math.round((used / total) * 100) : 0;
+              const remaining = total - used;
+
+              return (
+                <motion.div
+                  key={cat.category}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5 + index * 0.05 }}
+                  className="bg-[--bg-panel] border border-[--border-subtle] rounded-xl p-4 hover:border-[--border-glow] transition-all"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colorClass} flex items-center justify-center`}>
+                      <Icon size={14} className="text-white" />
+                    </div>
+                    <span className="text-xs text-[--text-muted] font-medium truncate">{cat.display_name}</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-end justify-between">
+                      <span className="text-lg font-bold">{remaining.toLocaleString()}</span>
+                      <span className="text-[10px] text-[--text-dim]">remaining</span>
+                    </div>
+                    <div className="h-1.5 bg-[--bg-elevated] rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percent}%` }}
+                        transition={{ duration: 0.6, delay: 0.6 + index * 0.05 }}
+                        className={`h-full bg-gradient-to-r ${colorClass}`}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[--text-dim]">
+                      <span>{used} used</span>
+                      <span>{percent}%</span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
