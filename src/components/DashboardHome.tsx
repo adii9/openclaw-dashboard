@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bot, Clock, ArrowRight, Zap, Image, Music, Video, FileText, Mic, Code } from "lucide-react";
-import AgentCard from "./AgentCard";
+import { Bot, Clock, Zap, Image, Music, Video, FileText, Mic, Code } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface Agent {
@@ -69,7 +68,6 @@ const modelColors: Record<string, string> = {
 };
 
 export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) {
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [quotaData, setQuotaData] = useState<QuotaData | null>(null);
   const activeAgents = agents.filter((a) => a.status === "running").length;
   const activeCrons = cronJobs.filter((c) => c.status === "active").length;
@@ -97,9 +95,6 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
     return `${hours}h ${minutes}m`;
   };
 
-  const formatNumber = (n: number) => n.toLocaleString();
-
-  // Filter models that have actual quotas (either interval or weekly > 0)
   const activeModels = quotaData?.model_remains?.filter(m =>
     m.current_interval_total_count > 0 || m.current_weekly_total_count > 0
   ) || [];
@@ -192,40 +187,12 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
         </motion.div>
       </div>
 
-      {/* Agents List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="mb-8"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-semibold">Your Agents</h2>
-          <button className="text-sm text-[--accent-cyan] hover:underline flex items-center gap-1">
-            View all <ArrowRight size={14} />
-          </button>
-        </div>
-
-        {agents.length > 0 ? (
-          <div className="space-y-2">
-            {agents.slice(0, 4).map((agent, index) => (
-              <AgentCard key={agent.id} agent={agent} index={index} onSelect={setSelectedAgent} />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-[--bg-panel] border border-[--border-subtle] rounded-xl p-8 text-center">
-            <Bot size={32} className="mx-auto mb-3 text-[--text-dim]" />
-            <p className="text-[--text-muted]">No agents found</p>
-          </div>
-        )}
-      </motion.div>
-
       {/* Quota Details - Model Breakdown */}
       {activeModels.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.4 }}
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-lg font-semibold">API Quota</h2>
@@ -249,7 +216,7 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
                   key={model.model_name}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.03 }}
+                  transition={{ delay: 0.4 + index * 0.03 }}
                   className="bg-[--bg-panel] border border-[--border-subtle] rounded-xl p-4 hover:border-[--border-glow] transition-all"
                 >
                   <div className="flex items-center gap-4">
@@ -275,7 +242,7 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${dailyPct}%` }}
-                              transition={{ duration: 0.5, delay: 0.6 + index * 0.03 }}
+                              transition={{ duration: 0.5, delay: 0.5 + index * 0.03 }}
                               className={`h-full bg-gradient-to-r ${colorClass}`}
                             />
                           </div>
@@ -290,7 +257,7 @@ export default function DashboardHome({ agents, cronJobs }: DashboardHomeProps) 
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${weeklyTotal > 0 ? (weeklyUsed / weeklyTotal) * 100 : 0}%` }}
-                              transition={{ duration: 0.5, delay: 0.6 + index * 0.03 }}
+                              transition={{ duration: 0.5, delay: 0.5 + index * 0.03 }}
                               className={`h-full bg-gradient-to-r ${colorClass} opacity-60`}
                             />
                           </div>
