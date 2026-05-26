@@ -104,13 +104,13 @@ export default function TodoPanel() {
             onClick={createItem}
             style={{
               padding: "12px 20px",
-              background: text.trim() ? "#10b981" : "#4b5563",
+              background: "#10b981",
               borderRadius: "12px",
               color: "white",
               fontWeight: "500",
               fontSize: "14px",
               border: "none",
-              cursor: text.trim() ? "pointer" : "not-allowed",
+              cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "6px"
