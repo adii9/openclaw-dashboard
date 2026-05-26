@@ -12,215 +12,189 @@ interface Todo {
 }
 
 export default function TodoPanel() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+  const [items, setItems] = useState<Todo[]>([]);
+  const [text, setText] = useState("");
+  const [view, setView] = useState<"all" | "active" | "done">("all");
 
   useEffect(() => {
-    const saved = localStorage.getItem("openclaw-todos");
-    if (saved) {
+    const stored = localStorage.getItem("openclaw-todos");
+    if (stored) {
       try {
-        const parsed = JSON.parse(saved);
-        setTodos(parsed);
-      } catch {
-        setTodos([]);
+        setItems(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse todos", e);
       }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("openclaw-todos", JSON.stringify(todos));
-  }, [todos]);
+    localStorage.setItem("openclaw-todos", JSON.stringify(items));
+  }, [items]);
 
-  const addTodo = () => {
-    const trimmed = inputValue.trim();
-    if (trimmed.length === 0) return;
+  const createItem = () => {
+    const content = text.trim();
+    if (!content) return;
 
-    const newTodo: Todo = {
+    const item: Todo = {
       id: Date.now().toString(),
-      text: trimmed,
+      text: content,
       completed: false,
       createdAt: Date.now(),
     };
 
-    const updatedTodos = [newTodo, ...todos];
-    setTodos(updatedTodos);
-    setInputValue("");
+    setItems([item, ...items]);
+    setText("");
   };
 
-  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+  const toggleItem = (id: string) => {
+    const newItems = items.map(t => (t.id === id ? { ...t, completed: !t.completed } : t));
+    setItems(newItems);
   };
 
-  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && inputValue.trim().length > 0) {
-      addTodo();
-    }
+  const removeItem = (id: string) => {
+    setItems(items.filter(t => t.id !== id));
   };
 
-  const toggleTodo = (id: string) => {
-    const updatedTodos = todos.map(t => {
-      if (t.id === id) {
-        return { ...t, completed: !t.completed };
-      }
-      return t;
-    });
-    setTodos(updatedTodos);
+  const purgeDone = () => {
+    setItems(items.filter(t => !t.completed));
   };
 
-  const deleteTodo = (id: string) => {
-    const filteredTodos = todos.filter(t => t.id !== id);
-    setTodos(filteredTodos);
-  };
-
-  const clearCompleted = () => {
-    const activeTodos = todos.filter(t => !t.completed);
-    setTodos(activeTodos);
-  };
-
-  const getFilteredTodos = () => {
-    if (filter === "active") {
-      return todos.filter(t => !t.completed);
-    }
-    if (filter === "completed") {
-      return todos.filter(t => t.completed);
-    }
-    return todos;
-  };
-
-  const activeCount = todos.filter(t => !t.completed).length;
-  const completedCount = todos.filter(t => t.completed).length;
-  const filteredTodos = getFilteredTodos();
-
-  const isInputEmpty = inputValue.trim().length === 0;
+  const showItems = view === "all" ? items : view === "active" ? items.filter(t => !t.completed) : items.filter(t => t.completed);
+  const activeNum = items.filter(t => !t.completed).length;
+  const doneNum = items.filter(t => t.completed).length;
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div style={{ maxWidth: "600px", padding: "20px" }}>
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-            <CheckCircle2 size={20} className="text-white" />
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+          <div style={{
+            width: "40px", height: "40px", borderRadius: "8px",
+            background: "linear-gradient(135deg, #10b981, #059669)",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <CheckCircle2 size={20} color="white" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold">Todo</h1>
-            <p className="text-sm text-gray-400">
-              {activeCount} active · {completedCount} done
-            </p>
+            <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#f0f0f5" }}>Todo</h1>
+            <p style={{ fontSize: "14px", color: "#6b7280" }}>{activeNum} active · {doneNum} done</p>
           </div>
         </div>
 
-        {/* Input */}
-        <div className="flex gap-2">
+        {/* Add Form */}
+        <div style={{ display: "flex", gap: "8px" }}>
           <input
             type="text"
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onInputKeyDown}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") createItem(); }}
             placeholder="What needs to be done?"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-400 text-white placeholder-gray-500"
+            style={{
+              flex: 1,
+              background: "#0d0d12",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "12px",
+              padding: "12px 16px",
+              fontSize: "14px",
+              color: "#f0f0f5",
+              outline: "none"
+            }}
           />
           <button
-            onClick={addTodo}
-            disabled={isInputEmpty}
-            className={`px-5 py-3 text-white rounded-xl font-medium text-sm transition-colors flex items-center gap-2 ${
-              isInputEmpty ? "bg-gray-600 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-500"
-            }`}
+            onClick={createItem}
+            style={{
+              padding: "12px 20px",
+              background: text.trim() ? "#10b981" : "#4b5563",
+              borderRadius: "12px",
+              color: "white",
+              fontWeight: "500",
+              fontSize: "14px",
+              border: "none",
+              cursor: text.trim() ? "pointer" : "not-allowed",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
           >
             <Plus size={18} />
             Add
           </button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setFilter("all")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            filter === "all" ? "bg-cyan-400/10 text-cyan-400" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setFilter("active")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            filter === "active" ? "bg-cyan-400/10 text-cyan-400" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setFilter("completed")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            filter === "completed" ? "bg-cyan-400/10 text-cyan-400" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          Completed
-        </button>
-        {completedCount > 0 && (
-          <button
-            onClick={clearCompleted}
-            className="ml-auto px-3 py-1.5 rounded-lg text-sm text-rose-400 hover:bg-rose-400/10 transition-all"
-          >
-            Clear done
-          </button>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "16px", alignItems: "center" }}>
+        <button onClick={() => setView("all")} style={{
+          padding: "6px 12px", borderRadius: "8px", fontSize: "14px", fontWeight: "500",
+          background: view === "all" ? "rgba(0,240,255,0.1)" : "transparent",
+          color: view === "all" ? "#00f0ff" : "#6b7280",
+          border: "none", cursor: "pointer"
+        }}>All</button>
+        <button onClick={() => setView("active")} style={{
+          padding: "6px 12px", borderRadius: "8px", fontSize: "14px", fontWeight: "500",
+          background: view === "active" ? "rgba(0,240,255,0.1)" : "transparent",
+          color: view === "active" ? "#00f0ff" : "#6b7280",
+          border: "none", cursor: "pointer"
+        }}>Active</button>
+        <button onClick={() => setView("done")} style={{
+          padding: "6px 12px", borderRadius: "8px", fontSize: "14px", fontWeight: "500",
+          background: view === "done" ? "rgba(0,240,255,0.1)" : "transparent",
+          color: view === "done" ? "#00f0ff" : "#6b7280",
+          border: "none", cursor: "pointer"
+        }}>Done</button>
+        {doneNum > 0 && (
+          <button onClick={purgeDone} style={{
+            marginLeft: "auto", padding: "6px 12px", borderRadius: "8px", fontSize: "14px",
+            color: "#f43f5e", background: "transparent", border: "none", cursor: "pointer"
+          }}>Clear done</button>
         )}
       </div>
 
-      {/* Todo List */}
-      <div className="space-y-2">
+      {/* List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <AnimatePresence>
-          {filteredTodos.map((todo, index) => (
+          {showItems.map((item, i) => (
             <motion.div
-              key={todo.id}
+              key={item.id}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ delay: index * 0.03 }}
-              className="group bg-gray-800/50 border border-gray-700 rounded-xl p-4 hover:border-cyan-400/30 transition-all"
+              transition={{ delay: i * 0.03 }}
+              style={{
+                background: "#12121a",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "12px",
+                padding: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px"
+              }}
             >
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => toggleTodo(todo.id)}
-                  className="flex-shrink-0 text-gray-500 hover:text-emerald-400 transition-colors"
-                >
-                  {todo.completed ? (
-                    <CheckCircle2 size={22} className="text-emerald-400" />
-                  ) : (
-                    <Circle size={22} />
-                  )}
+              <button onClick={() => toggleItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                {item.completed
+                  ? <CheckCircle2 size={22} color="#10b981" />
+                  : <Circle size={22} color="#4b5563" />}
+              </button>
+              <span style={{
+                flex: 1, fontSize: "14px",
+                color: item.completed ? "#4b5563" : "#f0f0f5",
+                textDecoration: item.completed ? "line-through" : "none"
+              }}>{item.text}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", opacity: 0.5 }}>
+                <span style={{ fontSize: "10px", color: "#4b5563" }}>{new Date(item.createdAt).toLocaleDateString()}</span>
+                <button onClick={() => removeItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px" }}>
+                  <Trash2 size={14} color="#4b5563" />
                 </button>
-
-                <span className={`flex-1 text-sm ${todo.completed ? "text-gray-500 line-through" : "text-white"}`}>
-                  {todo.text}
-                </span>
-
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-[10px] text-gray-500">
-                    {new Date(todo.createdAt).toLocaleDateString()}
-                  </span>
-                  <button
-                    onClick={() => deleteTodo(todo.id)}
-                    className="p-1 text-gray-500 hover:text-rose-400 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {filteredTodos.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <CheckCircle2 size={32} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">
-              {filter === "all" ? "No todos yet" : filter === "active" ? "All done!" : "No completed todos"}
+        {showItems.length === 0 && (
+          <div style={{ textAlign: "center", padding: "48px 0", color: "#4b5563" }}>
+            <CheckCircle2 size={32} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
+            <p style={{ fontSize: "14px" }}>
+              {view === "all" ? "No todos yet" : view === "active" ? "All done!" : "No completed todos"}
             </p>
           </div>
         )}
