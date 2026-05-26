@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, Plus, Trash2, Calendar } from "lucide-react";
+import { CheckCircle2, Circle, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface Todo {
@@ -13,10 +13,9 @@ interface Todo {
 
 export default function TodoPanel() {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [input, setInput] = useState("");
+  const [newTodoText, setNewTodoText] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
 
-  // Load from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("openclaw-todos");
     if (saved) {
@@ -28,41 +27,38 @@ export default function TodoPanel() {
     }
   }, []);
 
-  // Save to localStorage
   useEffect(() => {
     localStorage.setItem("openclaw-todos", JSON.stringify(todos));
   }, [todos]);
 
-  const addTodo = () => {
-    const text = input.trim();
-    if (!text) return;
+  const handleAddTodo = () => {
+    const text = newTodoText.trim();
+    if (text === "") return;
 
-    const newTodo: Todo = {
+    const todo: Todo = {
       id: Date.now().toString(),
       text: text,
       completed: false,
       createdAt: Date.now(),
     };
 
-    setTodos(currentTodos => {
-      const updated = [newTodo, ...currentTodos];
-      return updated;
-    });
-    setInput("");
+    setTodos([todo, ...todos]);
+    setNewTodoText("");
   };
 
   const toggleTodo = (id: string) => {
-    setTodos(prev =>
-      prev.map(t => (t.id === id ? { ...t, completed: !t.completed } : t))
+    const updated = todos.map(t =>
+      t.id === id ? { ...t, completed: !t.completed } : t
     );
+    setTodos(updated);
   };
 
   const deleteTodo = (id: string) => {
-    setTodos(prev => prev.filter(t => t.id !== id));
+    setTodos(todos.filter(t => t.id !== id));
   };
 
   const clearCompleted = () => {
-    setTodos(prev => prev.filter(t => !t.completed));
+    setTodos(todos.filter(t => !t.completed));
   };
 
   const filteredTodos = todos.filter(t => {
@@ -74,11 +70,7 @@ export default function TodoPanel() {
   const activeCount = todos.filter(t => !t.completed).length;
   const completedCount = todos.filter(t => t.completed).length;
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      addTodo();
-    }
-  };
+  const canAdd = newTodoText.trim().length > 0;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -103,16 +95,15 @@ export default function TodoPanel() {
         <div className="flex gap-2">
           <input
             type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            value={newTodoText}
+            onChange={(e) => setNewTodoText(e.target.value)}
             placeholder="What needs to be done?"
             className="flex-1 bg-[--bg-input] border border-[--border-subtle] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[--accent-cyan]"
           />
           <button
-            onClick={addTodo}
-            disabled={!input.trim()}
-            className="px-4 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white rounded-xl font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity flex items-center gap-2"
+            onClick={handleAddTodo}
+            disabled={!canAdd}
+            className="px-4 py-3 bg-gradient-to-r from-[#10b981] to-[#059669] text-white rounded-xl font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center gap-2"
           >
             <Plus size={18} />
             Add
@@ -122,19 +113,36 @@ export default function TodoPanel() {
 
       {/* Filters */}
       <div className="flex items-center gap-2">
-        {(["all", "active", "completed"] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              filter === f
-                ? "bg-[--accent-cyan]/10 text-[--accent-cyan]"
-                : "text-[--text-muted] hover:text-[--text-primary]"
-            }`}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+        <button
+          onClick={() => setFilter("all")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            filter === "all"
+              ? "bg-[--accent-cyan]/10 text-[--accent-cyan]"
+              : "text-[--text-muted] hover:text-[--text-primary]"
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setFilter("active")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            filter === "active"
+              ? "bg-[--accent-cyan]/10 text-[--accent-cyan]"
+              : "text-[--text-muted] hover:text-[--text-primary]"
+          }`}
+        >
+          Active
+        </button>
+        <button
+          onClick={() => setFilter("completed")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            filter === "completed"
+              ? "bg-[--accent-cyan]/10 text-[--accent-cyan]"
+              : "text-[--text-muted] hover:text-[--text-primary]"
+          }`}
+        >
+          Completed
+        </button>
         {completedCount > 0 && (
           <button
             onClick={clearCompleted}
