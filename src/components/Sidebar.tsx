@@ -7,10 +7,11 @@ import {
   History,
   Sparkles,
   Wand2,
+  CheckSquare,
 } from "lucide-react";
 import ThemeButton from "./ThemeButton";
 
-type NavSection = "dashboard" | "agents" | "cron" | "chat" | "skills";
+type NavSection = "dashboard" | "agents" | "cron" | "chat" | "skills" | "todo";
 
 interface SidebarProps {
   activeSection: NavSection;
@@ -26,6 +27,7 @@ const navItems = [
   { id: "cron" as NavSection, label: "Schedules", icon: History },
   { id: "chat" as NavSection, label: "Chat", icon: Sparkles },
   { id: "skills" as NavSection, label: "Skills", icon: Wand2 },
+  { id: "todo" as NavSection, label: "Todo", icon: CheckSquare },
 ];
 
 export default function Sidebar({

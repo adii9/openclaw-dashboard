@@ -8,9 +8,10 @@ import AgentsPanel from "@/components/AgentsPanel";
 import CronPanel from "@/components/CronPanel";
 import ChatPanel from "@/components/ChatPanel";
 import SkillsPanel from "@/components/SkillsPanel";
+import TodoPanel from "@/components/TodoPanel";
 import { getOpenClawGateway, Agent, CronJob } from "@/lib/openclaw";
 
-type NavSection = "dashboard" | "agents" | "cron" | "chat" | "skills";
+type NavSection = "dashboard" | "agents" | "cron" | "chat" | "skills" | "todo";
 
 // Local simplified types for UI
 interface UIAgent {
@@ -166,6 +167,8 @@ export default function DashboardPage() {
         return <ChatPanel />;
       case "skills":
         return <SkillsPanel skills={skills} />;
+      case "todo":
+        return <TodoPanel />;
       default:
         return <DashboardHome agents={agents} cronJobs={cronJobs} />;
     }
